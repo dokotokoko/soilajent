@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>シミュレーション結果</title>
+</head>
+<body>
+    <h1>シミュレーション結果</h1>
+    <p>環境パラメータの推移グラフ:</p>
+    <img src="data:image/png;base64,{{ plot_image }}" alt="グラフ">
+    <br>
+    <a href="{{ url_for('index') }}">新たにシミュレーションを実行</a>
+</body>
+</html>

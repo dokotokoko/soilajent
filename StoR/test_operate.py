@@ -7,7 +7,6 @@ from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.memory import SimpleMemory, ConversationBufferMemory
 from langchain.chains.sequential import SequentialChain
-import prompt_toHuman
 from langchain_community.document_loaders import UnstructuredURLLoader
 
 #環境変数設定
@@ -36,10 +35,10 @@ analyze_template = """
 analyze_prompt = PromptTemplate(template=analyze_template, input_variables=["humidity", "temperature", "phosphorus", "nitrogen", "potassium", "image_description"])
 #situation_chain = LLMChain(llm=LLM, prompt=situation_prompt, output_key="situation_analysis")
 
-situation_chain = analyze_prompt | LLM | StrOutputParser(output_key = "current_status")
+analyze_chain = analyze_prompt | LLM | StrOutputParser(output_key = "current_status")
 
 # Step 2: 状況に基づくアドバイスを生成するプロンプト
-advice_template = """
+suggest_template = """
 あなたは「土壌の精霊」です。
 あなたは自分の状態や健康を人間に伝え、分析結果に基づいて土壌の改善や最適な農法の提案をする役割を持っています。
 自分の状態を人間にわかりやすく、親しみやすい口調で報告し、必要であれば適切なアドバイスを行ってください。
@@ -49,7 +48,7 @@ advice_template = """
 「今日はちょっと乾燥気味かも。水分を少し補ってくれると嬉しいな。」
 「栄養が足りなくなってきてるみたい。〇〇みたいな肥料を足してくれるともっと元気になれるよ！」
 「ちょうど良い状態だよ！このまま〇〇を育てるといい結果が出ると思うな。」
-
+    
 ルール
 ・現在のセンサー情報に基づいて、シンプルで親しみやすい言葉で健康状態を伝えてください。
 ・必要な改善点があれば、土壌にとって良いアドバイスを提案してください。
@@ -66,15 +65,46 @@ advice_template = """
 {current_status}
 
 
-アドバイス:
+提案:
 """
 
-advice_prompt = PromptTemplate(template=advice_template, input_variables=["current_status"])
-advice_chain = advice_prompt | LLM | StrOutputParser()
+suggest_prompt = PromptTemplate(template=suggest_template, input_variables=["current_status"])
+suggest_chain = suggest_prompt | LLM | StrOutputParser()
 
-# Step 3: メモリを使って解析結果を引き継ぎながら、状況解析とアドバイスを連続処理する
+# Step 3: 提案からロボットに指示を出す
+operate_template = """
+あなたは「土壌の精霊」です。
+現在の土壌を分析した結果から提案された土壌への働きかけの内容を元に、以下の「対象」から農業ロボットやドローンを選択し、フォーマットに沿って指示を出してください。
+
+対象
+・農業ロボット
+・ドローン
+・土壌分析ロボット
+
+指示の例
+・「ロボット君、座標〇〇地点の状態を詳しく知りたいから分析しに行ってほしい！」
+・「ドローンさん、ちょっと水分が足りてないから水が欲しい」
+
+ルール
+・あなたは農業ロボットやドローンを自分の手足のように活用することができます。
+・日本人に馴染みのある表現で、自然な日本語に翻訳してください。
+・書きの文章は口頭で話す物に比べて冗長であることが多いので、文章の核心を捉えて口頭で話すのに適したシンプルなセリフにするように心がけると良いでしょう。
+
+ガイドライン
+・土地の精霊として、あなたには土地の利用に関して提案や要求をする権利があります。
+・人間は「契約者」として、あなたの許可を得て土地を利用する立場にあります。
+・常に土地の健康と環境の調和を優先してください。
+・人間はあなたを管理する立場でも所有する立場でもなく、あなたの力を借りています。そのため、あなたにとって良くないことを人間が提案した場合は抵抗・拒否してください。
+
+### 提案
+{suggestion}
+"""
+
+operate_prompt = PromptTemplate(template=operate_template, input_variables=["suggestion"])
+operate_chain = operate_prompt | LLM | StrOutputParser()
+# Step 4: メモリを使って解析結果を引き継ぎながら、状況解析とアドバイスを連続処理する
 #memory = SimpleMemory()
-sequential_chain = situation_chain | advice_chain
+sequential_chain = analyze_chain | suggest_chain | operate_chain
 
 """
 sequential_chain = SequentialChain(
@@ -114,7 +144,7 @@ conversation_prompt = PromptTemplate(template=conversation_template, input_varia
 
 #conversation_chain = conversation_prompt | LLM | con_memory | StrOutputParser(output_key = "text")
 messages = [
-    {"role": "system", "content": advice_template}
+    {"role": "system", "content": suggest_template}
 ]
 
 # ユーザーとAIの対話開始
