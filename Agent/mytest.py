@@ -59,11 +59,11 @@ class ActionAgent:
     
     # ----- 行動選択肢とその環境への効果（調整値） -----
     actions = {
-        "森林の再生を促進する（人間に依頼）": {"humidity": 0, "temperature": 0, "bd_score": 15},
+        "森林の再生を促進する": {"humidity": 0, "temperature": 0, "bd_score": 15},
         "生物が移動しやすい緑の回廊を設置": {"humidity": 0, "temperature": 0, "bd_score": 15},
-        "人工的な湿地を作り、多様な水生生物を呼び込む（人間に依頼）": {"humidity": 3, "temperature": 0, "bd_score": 15},
+        "人工的な湿地を作り、多様な水生生物を呼び込む": {"humidity": 3, "temperature": 0, "bd_score": 15},
         "果樹や花の植栽": {"humidity": 0, "temperature": 0, "bd_score": 12},
-        "水辺環境を整え、両生類・魚類の生息地を守る（人間に依頼）": {"humidity": 2, "temperature": 0, "bd_score": 12},
+        "水辺環境を整え、両生類・魚類の生息地を守る": {"humidity": 2, "temperature": 0, "bd_score": 12},
         "小規模な池やビオトープを作り、雨水を貯留して水生生物の生息地とする": {"humidity": 2, "temperature": 0, "bd_score": 12},
         "在来種の植栽": {"humidity": 0, "temperature": 0, "bd_score": 10},
         "草原の維持・再生": {"humidity": 0, "temperature": 0, "bd_score": 10},
@@ -76,7 +76,7 @@ class ActionAgent:
         "川の連続性を確保し、魚類の移動を妨げるダムや障害物を減らす": {"humidity": 0, "temperature": 0, "bd_score": 9},
         "多様な植物層を形成する": {"humidity": 0, "temperature": 0, "bd_score": 8},
         "植生遷移の段階的保護": {"humidity": 0, "temperature": 0, "bd_score": 8},
-        "腐葉土を作り、土壌の栄養を補充（人間に依頼）": {"humidity": 0, "temperature": 0, "bd_score": 8}
+        "腐葉土を作り、土壌の栄養を補充": {"humidity": 0, "temperature": 0, "bd_score": 8}
     }
 
     # ----- エージェントによる行動選択関数 -----
@@ -101,11 +101,19 @@ class ActionAgent:
         response = self.LLM.invoke(prompt)
         response_text = response.content
 
+        print("AIによる決定： " + response_text)
+
         for action in self.actions.keys():
-            if action.lower() in response_text.lower():
+            if action in response_text:
                 selected_action = action
                 print(f"[LLM選択] 選ばれた行動: {selected_action}")
-                return selected_action
+                break
+            else:
+                selected_action = "AIは行動を選択しませんでした。（人間に依頼）"
+                print("[LLM選択] " + selected_action)
+
+        print("行動が決定されました")
+        return selected_action
 
 # ----- チャットエージェントクラス定義 -----
 class ChatAgent:
@@ -181,9 +189,8 @@ def main(num_turns: int=10):
         # エージェントによる行動選択
         selected_action = agent.select_action(env_state)
 
-        if selected_action is None:
+        if selected_action == "AIは行動を選択しませんでした。（人間に依頼）":
             agent.actions["AIは行動を選択しませんでした。（人間に依頼）"] = {"humidity": 0, "temperature": 0, "bd_score": 0}
-            selected_action = "AIは行動を選択しませんでした。（人間に依頼）"
             print(selected_action)
         else:
             print(selected_action)
