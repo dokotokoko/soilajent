@@ -1,4 +1,3 @@
-import openai
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -128,7 +127,8 @@ while True:
         break
 
     # ユーザーのメッセージを履歴に追加
-    messages.append({"role": "user", "content": user_input})
+    #messages.append({"role": "user", "content": user_input})botsu
+    memory = ConversationBufferMemory(return_messages=True)
 
     # ユーザー入力を会話チェーンに渡して応答を生成
     # ChatGPTにメッセージを送信
